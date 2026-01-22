@@ -1,0 +1,24 @@
+FROM node:22.9.0-bookworm AS base
+
+WORKDIR /app
+
+COPY package*json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+
+# https://github.com/pnpm/pnpm/issues/9029
+# https://github.com/nodejs/corepack/issues/612
+RUN npm install -g corepack@latest
+# Install pnpm with corepack
+RUN corepack enable
+RUN corepack prepare pnpm --activate
+
+COPY migrations ./migrations
+COPY migrate.js ./migrate.js
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 postgre
+
+RUN chown -R postgre:nodejs /app
+
+USER postgre
+
+CMD ["node", "migrate.js"]
